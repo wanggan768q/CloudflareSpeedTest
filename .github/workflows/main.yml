@@ -1,0 +1,35 @@
+name: Sync All Branches from Upstream
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨2点自动同步
+  workflow_dispatch:      # 支持手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/XIU2/CloudflareSpeedTest.git
+          git fetch upstream
+
+      - name: Sync all branches
+        run: |
+          for branch in $(git branch -r | grep 'upstream/' | grep -vE 'HEAD'); do
+            b=${branch#upstream/}
+            echo "Syncing branch: $b"
+            git checkout -B $b upstream/$b
+            git push origin $b --force
+          done
